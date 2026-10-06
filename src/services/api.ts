@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { InspectionDraft, InspectionRecord } from '../types'
+import type { InspectionDraft, InspectionRecord, MergedItem } from '../types'
 
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
@@ -16,6 +16,25 @@ export async function loadInspectionSnapshot(fallback: InspectionRecord[]): Prom
   }
 }
 
+function freshItems(operator: string, at: string): MergedItem[] {
+  const defs = [
+    { id: 'wear', name: '结构磨损', limit: '≤ 5.0 mm' },
+    { id: 'noise', name: '运行异响', limit: '≤ 75 dB' },
+    { id: 'brake', name: '制动装置', limit: '制动可靠' },
+    { id: 'lock', name: '锁止机构', limit: '无可见间隙' },
+    { id: 'safety', name: '安全装置', limit: '动作可靠' }
+  ]
+  return defs.map((d) => ({
+    ...d,
+    result: '正常' as const,
+    reading: '待录入',
+    note: '',
+    resultConflict: false,
+    readingConflict: false,
+    versions: [{ source: '平板' as const, operator, recordedAt: at, result: '正常' as const, reading: '待录入', note: '' }]
+  }))
+}
+
 export function createOfflineInspection(draft: InspectionDraft): InspectionRecord {
   const now = new Date().toISOString()
   return {
@@ -24,17 +43,19 @@ export function createOfflineInspection(draft: InspectionDraft): InspectionRecor
     inspectedAt: now,
     status: '待检验',
     stopped: false,
-    items: [
-      { id: 'wear', name: '结构磨损', result: '正常', reading: '待录入', limit: '≤ 5.0 mm', note: '' },
-      { id: 'noise', name: '运行异响', result: '正常', reading: '待录入', limit: '≤ 75 dB', note: '' },
-      { id: 'brake', name: '制动装置', result: '正常', reading: '待录入', limit: '制动可靠', note: '' },
-      { id: 'lock', name: '锁止机构', result: '正常', reading: '待录入', limit: '无可见间隙', note: '' },
-      { id: 'safety', name: '安全装置', result: '正常', reading: '待录入', limit: '动作可靠', note: '' }
-    ],
+    items: freshItems(draft.inspector, now),
     evidenceCount: 0,
     version: 1,
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
+    verifyState: draft.shift ? '有效' : '待核',
+    pendingReason: draft.shift ? [] : ['旧记录缺班次标识，先待核'],
+    sources: ['平板'],
+    stoppedDisputed: false,
+    assigneeDisputed: false,
+    rechecks: [],
+    release: { state: '未申请' },
+    reviews: []
   }
 }
 

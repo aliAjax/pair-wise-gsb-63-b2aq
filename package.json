@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --port 18463",
     "build": "vue-tsc --noEmit -p tsconfig.app.json && vite build",
-    "preview": "vite preview --port 18463"
+    "preview": "vite preview --port 18463",
+    "verify": "esbuild scripts/verify-sync.mts --bundle --platform=node --format=esm --outfile=node_modules/.cache/verify-sync.mjs && node node_modules/.cache/verify-sync.mjs"
   },
   "dependencies": {
     "@tanstack/vue-query": "^5.66.8",

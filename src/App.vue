@@ -15,6 +15,12 @@ const pageTitle = computed(() => {
   return '日常检验总览'
 })
 
+const statusText = computed(() => {
+  if (!store.online) return '园区断网：记录留在平板'
+  if (store.networkFault) return '回连异常：补传将重试'
+  return '本地实时通道已就绪'
+})
+
 onMounted(() => {
   disconnect = connectLiveUpdates((message) => { store.liveMessage = message })
 })
@@ -36,11 +42,11 @@ onUnmounted(() => disconnect())
         <RouterLink to="/defects"><span>02</span>缺陷处置</RouterLink>
         <RouterLink to="/audit"><span>03</span>操作审计</RouterLink>
       </nav>
-      <div class="sidebar-status">
+      <div class="sidebar-status" :class="{ offline: !store.online, fault: store.networkFault }">
         <i />
         <div>
-          <strong>{{ store.liveMessage }}</strong>
-          <small>数据保存在本机浏览器</small>
+          <strong>{{ statusText }}</strong>
+          <small>待补传 {{ store.stats.queued }} 条 · 待核 {{ store.stats.pending }} 批</small>
         </div>
       </div>
     </aside>

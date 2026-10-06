@@ -99,3 +99,54 @@ h3 { font-size: 15px; margin: 0 0 10px; }
 .audit-card p { margin: 8px 0; color: #5e6c69; font-size: 12px; }
 .audit-card small { color: #8b9794; font-size: 11px; }
 .empty-state { padding: 80px; text-align: center; color: #71807d; }
+
+/* —— 断网并单 / 待核 / 复测 / 放行 / 办结 —— */
+.kanban { grid-template-columns: repeat(5, 1fr); }
+.metric-strip { grid-template-columns: repeat(6, 1fr); }
+.net-band { display: flex; justify-content: space-between; align-items: center; background: white; border: 1px solid #dbe2df; border-radius: 5px; padding: 12px 16px; margin: 16px 0 12px; gap: 14px; flex-wrap: wrap; }
+.net-state { display: flex; gap: 10px; align-items: flex-start; }
+.net-state i { width: 9px; height: 9px; margin-top: 5px; background: #43b884; border-radius: 50%; box-shadow: 0 0 0 4px rgba(67,184,132,.15); }
+.net-state.offline i { background: #d98a3c; box-shadow: 0 0 0 4px rgba(217,138,60,.15); }
+.net-state.fault i { background: #d05048; box-shadow: 0 0 0 4px rgba(208,80,72,.15); }
+.net-state strong { display: block; font-size: 13px; }
+.net-state small { display: block; color: #83918e; font-size: 11px; margin-top: 3px; }
+.net-controls { display: flex; align-items: center; gap: 12px; }
+.switch-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #667572; }
+.sidebar-status.offline { background: rgba(217,138,60,.22); }
+.sidebar-status.fault { background: rgba(208,80,72,.22); }
+.pending-band, .queue-band { background: #fbf6ea; border: 1px solid #e6d5a6; border-radius: 5px; padding: 14px 16px; margin-bottom: 12px; }
+.queue-band { background: #f2f7f6; border-color: #cfe0db; }
+.pending-band header, .queue-band header, .offline-panel header, .recheck-panel header, .closure-panel header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.pending-band header strong, .queue-band header strong, .offline-panel header strong, .recheck-panel header strong, .closure-panel header strong { font-size: 13px; }
+.pending-band header span, .queue-band header span, .recheck-panel header span, .closure-panel header span { color: #8a9895; font-size: 11px; }
+.warn-band { background: #fdf1e3; border: 1px solid #ecc794; color: #8a5a24; border-radius: 4px; padding: 9px 12px; font-size: 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.inline-resolve { display: inline-flex; align-items: center; gap: 6px; }
+.dispute-band { display: flex; gap: 22px; background: #fbeeee; border: 1px solid #e3b5b0; border-radius: 4px; padding: 10px 12px; margin-bottom: 10px; font-size: 12px; color: #8f443c; }
+.dispute-band label { display: flex; align-items: center; gap: 8px; }
+.merge-line { color: #82918e; font-size: 11px; }
+.offline-panel, .recheck-panel, .closure-panel { background: white; border: 1px solid #dbe2df; border-radius: 5px; padding: 16px; margin-top: 16px; }
+.closure-panel { border-left: 4px solid #d6a33a; }
+.panel-note { color: #82908d; font-size: 11px; margin: 4px 0 10px; }
+.offline-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.offline-form label { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #5e6c69; }
+.recheck-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 4px; background: #f5f8f7; margin-bottom: 6px; font-size: 12px; }
+.recheck-row.已作废 { background: #fbeeec; opacity: .85; }
+.recheck-row.已完成 { background: #eef8f2; }
+.recheck-row small { color: #8a9895; }
+.void-reason { color: #b3483e; font-size: 11px; }
+.release-box { border: 1px solid #dbe2df; border-radius: 5px; padding: 12px; display: grid; gap: 7px; }
+.release-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.review-list { margin-top: 12px; }
+.review-list h4 { margin: 0 0 8px; font-size: 13px; }
+.review-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 10px; background: #fbf6ea; border-radius: 4px; margin-bottom: 6px; font-size: 12px; }
+.review-row small { width: 100%; color: #8a7a4f; }
+.link-strip { display: grid; grid-template-columns: repeat(4, 1fr); background: #fff; border: 1px solid #dbe2df; border-radius: 5px; margin-bottom: 16px; }
+.link-strip article { padding: 14px 18px; border-right: 1px solid #e5eae8; }
+.link-strip article:last-child { border-right: 0; }
+.link-strip span, .link-strip strong, .link-strip small { display: block; }
+.link-strip span { color: #6e7c7a; font-size: 12px; }
+.link-strip strong { font-size: 24px; margin: 5px 0 4px; color: #153f44; }
+.link-strip small { color: #99a4a2; font-size: 11px; }
+.conflict-flag { color: #b44137 !important; font-weight: 600; }
+.disputed { color: #b44137; font-weight: 600; }
+.flow-list button.disabled { opacity: .55; }
