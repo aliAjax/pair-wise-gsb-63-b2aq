@@ -99,3 +99,27 @@ h3 { font-size: 15px; margin: 0 0 10px; }
 .audit-card p { margin: 8px 0; color: #5e6c69; font-size: 12px; }
 .audit-card small { color: #8b9794; font-size: 11px; }
 .empty-state { padding: 80px; text-align: center; color: #71807d; }
+.sync-banner { display: flex; justify-content: space-between; align-items: center; gap: 14px; background: #eef6f2; border: 1px solid #c4ddd2; border-radius: 5px; padding: 13px 18px; margin-bottom: 16px; }
+.sync-banner.offline { background: #faf3e4; border-color: #e3cd9a; }
+.sync-banner strong { font-size: 13px; color: #173f44; }
+.sync-banner p { margin: 5px 0 0; font-size: 11px; color: #6c7d7a; }
+.sync-actions { display: flex; gap: 8px; }
+.metric-strip.five { grid-template-columns: repeat(5, 1fr); }
+.form-band.five { grid-template-columns: 1fr 120px 150px 130px 150px; }
+.verify-banner { background: #faf3e4; border: 1px solid #e3cd9a; border-radius: 4px; padding: 10px 14px; font-size: 12px; color: #7a6224; margin-bottom: 14px; }
+.merge-conflicts { background: #fffaf0; border: 1px solid #ecd9a8; border-radius: 5px; padding: 16px 18px; margin-bottom: 20px; }
+.conflict-tip { font-size: 11px; color: #8a7648; margin: 0 0 12px; }
+.merge-conflicts article { border-top: 1px solid #efdfba; padding: 12px 0; }
+.merge-conflicts article.resolved { opacity: .72; }
+.merge-conflicts article header { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.conflict-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.conflict-sides .side { background: white; border: 1px solid #e8dcc0; border-radius: 4px; padding: 10px 12px; }
+.conflict-sides .side small { color: #9a8c68; font-size: 11px; display: block; }
+.conflict-sides .side p { margin: 6px 0 8px; font-size: 13px; color: #2c3a38; }
+.closure-panel { background: #f4f7f5; border-left: 3px solid #587c78; padding: 12px 14px; margin-top: 18px; font-size: 12px; }
+.closure-panel p { margin: 6px 0; color: #5e6c69; }
+.review-items { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; color: #8c4a42; }
+.approval-panel, .retest-panel { display: grid; gap: 7px; font-size: 12px; }
+.approval-panel small, .retest-panel p { color: #6c7b78; font-size: 11px; margin: 0; }
+.retest-panel p { display: flex; align-items: center; gap: 6px; }
+.audit-tags { display: flex; gap: 6px; }

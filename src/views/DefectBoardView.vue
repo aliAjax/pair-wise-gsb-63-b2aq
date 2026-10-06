@@ -14,16 +14,23 @@ const grouped = computed(() => Object.fromEntries(columns.map((status) => [statu
 <template>
   <section class="content">
     <div class="board-intro">
-      <div><h2>缺陷处置泳道</h2><p>按风险等级排列未闭环任务，点击卡片进入现场处置记录。</p></div>
+      <div>
+        <h2>缺陷处置泳道</h2>
+        <p>按风险等级排列未闭环任务，点击卡片进入现场处置记录。当前有效批次：{{ store.activeBatch?.id ?? '基线数据' }}，与检验总览、审计一致。</p>
+      </div>
       <NButton @click="store.resetDemo()">恢复演示数据</NButton>
     </div>
     <div class="kanban">
       <div v-for="column in columns" :key="column" class="kanban-column">
         <header><span>{{ column }}</span><b>{{ grouped[column].length }}</b></header>
         <article v-for="record in grouped[column]" :key="record.id" @click="router.push(`/records/${record.id}`)">
-          <div><NTag :type="record.risk === '紧急' ? 'error' : record.risk === '高' ? 'warning' : 'default'" size="small" :bordered="false">{{ record.risk }}风险</NTag><small>V{{ record.version }}</small></div>
+          <div>
+            <NTag :type="record.risk === '紧急' ? 'error' : record.risk === '高' ? 'warning' : 'default'" size="small" :bordered="false">{{ record.risk }}风险</NTag>
+            <NTag v-if="record.syncState !== '已同步'" size="small" type="warning" :bordered="false">{{ record.syncState }}</NTag>
+            <small>V{{ record.version }} · {{ record.batchId || '基线' }}</small>
+          </div>
           <h3>{{ record.deviceName }}</h3>
-          <p>{{ record.deviceCode }} · {{ record.area }}</p>
+          <p>{{ record.deviceCode }} · {{ record.area }} · {{ record.shift || '班次待核' }}</p>
           <footer><span>{{ record.assignedTo }}</span><span :class="{ overdue: record.dueDate <= '2026-09-29' }">{{ record.dueDate }} 截止</span></footer>
         </article>
         <div v-if="!grouped[column].length" class="kanban-empty">暂无任务</div>

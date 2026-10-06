@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, h, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { NButton, NDataTable, NDatePicker, NForm, NFormItem, NInput, NInputNumber, NModal, NSelect, NTag, useMessage } from 'naive-ui'
+import { NButton, NDataTable, NDatePicker, NForm, NFormItem, NInput, NModal, NSelect, NTag, useMessage } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import { useInspectionStore } from '../stores/inspection'
 import { loadInspectionSnapshot } from '../services/api'
-import type { InspectionDraft, RiskLevel } from '../types'
+import type { InspectionDraft, InspectionRecord, RiskLevel } from '../types'
 
 const store = useInspectionStore()
 const router = useRouter()
@@ -23,37 +23,81 @@ const statusOptions = ['全部', '待检验', '需整改', '整改中', '待复�
 const areaOptions = ['全部', ...new Set(store.records.map((item) => item.area))].map((value) => ({ label: value, value }))
 const riskOptions: Array<{ label: RiskLevel; value: RiskLevel }> = ['低', '中', '高', '紧急'].map((value) => ({ label: value as RiskLevel, value: value as RiskLevel }))
 
+const syncTag = (row: InspectionRecord) => {
+  if (row.syncState === '已同步') return null
+  const type = row.syncState === '待核' ? 'warning' : row.syncState === '同步失败' ? 'error' : 'info'
+  return h(NTag, { size: 'small', type, bordered: false, style: 'margin-left:6px' }, { default: () => row.syncState })
+}
+
 const columns = [
   { title: '检验编号', key: 'id', width: 145 },
   { title: '设备', key: 'deviceName', width: 130, render: (row: any) => `${row.deviceName} / ${row.deviceCode}` },
   { title: '区域', key: 'area', width: 90 },
-  { title: '状态', key: 'status', width: 90, render: (row: any) => h(NTag, { type: row.stopped ? 'error' : row.status === '已关闭' ? 'success' : 'warning', bordered: false }, { default: () => row.status }) },
+  {
+    title: '状态', key: 'status', width: 150, render: (row: any) => h('span', null, [
+      h(NTag, { type: row.stopped ? 'error' : row.status === '已关闭' ? 'success' : 'warning', bordered: false }, { default: () => row.status }),
+      syncTag(row as InspectionRecord)
+    ])
+  },
   { title: '风险', key: 'risk', width: 80 },
   { title: '责任人', key: 'assignedTo', width: 105 },
   { title: '截止', key: 'dueDate', width: 110 },
+  { title: '有效批次', key: 'batchId', width: 165, render: (row: any) => row.batchId || '基线数据' },
   { title: '版本', key: 'version', width: 70, render: (row: any) => `V${row.version}` },
   { title: '', key: 'actions', width: 80, render: (row: any) => h(NButton, { size: 'small', tertiary: true, onClick: () => router.push(`/records/${row.id}`) }, { default: () => '打开' }) }
 ]
 
-const riskType = (risk: RiskLevel) => risk === '紧急' ? 'error' : risk === '高' ? 'warning' : 'default'
 const validDraft = computed(() => draft.value.deviceCode && draft.value.deviceName && draft.value.assignedTo && draft.value.dueDate)
 
 function createRecord() {
   if (!validDraft.value) return
   const record = store.addRecord(draft.value)
   showCreate.value = false
-  message.success(`已创建 ${record.id}`)
+  message.success(store.online ? `已创建 ${record.id}` : `已离线创建 ${record.id}，记录留在平板待补传`)
   router.push(`/records/${record.id}`)
+}
+
+function reconnect() {
+  const batch = store.setOnline(true)
+  if (batch) {
+    batch.failedOps
+      ? message.warning(`批次 ${batch.id} 部分失败：并单 ${batch.mergedOps} 条，${batch.failedOps} 条待重试`)
+      : message.success(`批次 ${batch.id} 合并完成：并单 ${batch.mergedOps} 条，冲突 ${batch.conflictCount} 项`)
+  } else {
+    message.info('通道已恢复，无待合并记录')
+  }
+}
+
+function retry() {
+  const batch = store.retryFailed()
+  batch ? message.success(`重试完成：批次 ${batch.id}，并单 ${batch.mergedOps} 条`) : message.info('没有失败待重试的补传项')
 }
 </script>
 
 <template>
   <section class="content">
-    <div class="metric-strip">
+    <div class="sync-banner" :class="{ offline: !store.online }">
+      <div>
+        <strong>{{ store.online ? '回连通道在线' : '园区断网中 · 检验记录留在平板本机' }}</strong>
+        <p>
+          待补传 {{ store.pendingOps.length }} 条 · 失败待重试 {{ store.failedOps.length }} 条 ·
+          当前有效批次 {{ store.activeBatch?.id ?? '基线数据' }}
+          <template v-if="store.activeBatch">（{{ store.activeBatch.status }}，冲突 {{ store.activeBatch.conflictCount }} 项）</template>
+        </p>
+      </div>
+      <div class="sync-actions">
+        <NButton v-if="store.failedOps.length && store.online" size="small" type="warning" @click="retry">重试未完成项</NButton>
+        <NButton v-if="store.online" size="small" @click="store.setOnline(false)">模拟断网</NButton>
+        <NButton v-else size="small" type="primary" @click="reconnect">恢复回连并合并</NButton>
+      </div>
+    </div>
+
+    <div class="metric-strip five">
       <article><span>今日检验任务</span><strong>{{ store.stats.total }}</strong><small>含复用演示记录</small></article>
       <article><span>停用设备</span><strong>{{ store.stats.blocked }}</strong><small>需优先核实隔离状态</small></article>
       <article><span>临近超期</span><strong>{{ store.stats.overdue }}</strong><small>按整改截止日计算</small></article>
       <article><span>已闭环</span><strong>{{ store.stats.closed }}</strong><small>异常项已复核完成</small></article>
+      <article><span>待核记录</span><strong>{{ store.stats.pendingVerify }}</strong><small>缺班次标识先待核</small></article>
     </div>
 
     <div class="toolbar">

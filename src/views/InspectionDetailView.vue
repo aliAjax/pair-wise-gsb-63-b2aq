@@ -22,7 +22,11 @@ watch(record, (value) => {
 }, { immediate: true })
 
 const items = computed(() => record.value?.items ?? [])
+const recordRetests = computed(() => store.retests.filter((item) => item.recordId === route.params.id))
+const approval = computed(() => record.value ? store.approvals[record.value.id] : undefined)
 const transitions: InspectionStatus[] = ['待检验', '需整改', '整改中', '待复测', '已关闭', '停用']
+
+const approvalType = computed(() => approval.value?.decision === '放行' ? 'success' : approval.value?.decision === '不放行' ? 'error' : 'warning')
 
 function save() {
   if (!record.value) return
@@ -31,6 +35,7 @@ function save() {
     dueDate: form.dueDate,
     risk: form.risk,
     stopped: form.stopped,
+    shift: form.shift,
     items: form.items
   })
   message.success('检验记录已保存并生成新版本')
@@ -48,6 +53,12 @@ function changeStatus(next: InspectionStatus) {
       result.ok ? message.success(result.message) : message.error(result.message)
     }
   })
+}
+
+function adopt(conflictId: string, sideIndex: 0 | 1) {
+  if (!record.value) return
+  store.resolveConflict(record.value.id, conflictId, sideIndex)
+  message.success('已采用选定版本，放行审批按新值重判')
 }
 
 const columns = [
@@ -73,27 +84,60 @@ function exportRecord() {
 <template>
   <section v-if="record" class="content detail-layout">
     <div class="detail-main">
+      <div v-if="record.syncState === '待核'" class="verify-banner">
+        该记录缺班次标识，暂列待核：核对班次前禁止流转与放行，请在下方补齐班次。
+      </div>
       <div class="section-head">
         <div>
-          <p>{{ record.deviceCode }} · {{ record.area }} · {{ record.shift }}</p>
+          <p>{{ record.deviceCode }} · {{ record.area }} · {{ record.shift || '班次待核' }}</p>
           <h2>{{ record.deviceName }}</h2>
         </div>
         <div class="head-actions">
           <NTag :type="record.stopped ? 'error' : record.status === '已关闭' ? 'success' : 'warning'" :bordered="false">{{ record.stopped ? '设备已停用' : record.status }}</NTag>
+          <NTag v-if="record.syncState !== '已同步'" size="small" type="warning" :bordered="false">{{ record.syncState }}</NTag>
           <NButton @click="exportRecord">导出记录</NButton>
           <NButton type="primary" @click="save">保存新版本</NButton>
         </div>
       </div>
 
-      <div class="form-band">
+      <div class="form-band five">
         <label>整改责任人 <NInput v-model:value="form.assignedTo" /></label>
+        <label>班次 <NSelect v-model:value="form.shift" :options="['早班', '中班', '晚班'].map((value) => ({ label: value, value }))" placeholder="待核补录" /></label>
         <label>截止日期 <input v-model="form.dueDate" class="native-date" type="date" /></label>
         <label>风险等级 <NSelect v-model:value="form.risk" :options="['低', '中', '高', '紧急'].map((value) => ({ label: value, value }))" /></label>
         <label>设备状态 <NSelect v-model:value="stopState" :options="['正常开放', '停用隔离'].map((value) => ({ label: value, value }))" /></label>
       </div>
 
+      <div v-if="record.conflicts.length" class="merge-conflicts">
+        <h3>回连冲突（两版均保留，值班室裁定后生效）</h3>
+        <p class="conflict-tip">整改责任人与停用判断仅采用无争议值；以下争议项未自动落库，裁定前放行审批保持待复核。</p>
+        <article v-for="conflict in record.conflicts" :key="conflict.id" :class="{ resolved: conflict.resolved }">
+          <header>
+            <strong>{{ conflict.label }}</strong>
+            <NTag size="small" :type="conflict.resolved ? 'success' : 'warning'" :bordered="false">
+              {{ conflict.resolved ? `已采用${conflict.adoptedSource}版` : '待裁定' }}
+            </NTag>
+          </header>
+          <div class="conflict-sides">
+            <div v-for="(side, index) in conflict.sides" :key="index" class="side">
+              <small>{{ side.source }} · 记录于 {{ side.at }}</small>
+              <p>{{ side.display }}</p>
+              <NButton v-if="!conflict.resolved" size="tiny" tertiary @click="adopt(conflict.id, index as 0 | 1)">采用该版</NButton>
+            </div>
+          </div>
+        </article>
+      </div>
+
       <h3>逐项检验结果</h3>
       <NDataTable :columns="columns" :data="items" :bordered="false" size="small" />
+
+      <div v-if="record.closedBasis" class="closure-panel">
+        <strong>办结依据（保留原办结内容）</strong>
+        <p>{{ record.closedBasis }}</p>
+        <div v-if="record.reviewItems.length" class="review-items">
+          并列复审项：<NTag v-for="item in record.reviewItems" :key="item" size="small" type="error" :bordered="false">{{ item }}</NTag>
+        </div>
+      </div>
 
       <div class="evidence-panel">
         <div><strong>现场证据</strong><span>{{ record.evidenceCount }} 张照片 · 最近上传 09:31</span></div>
@@ -106,6 +150,19 @@ function exportRecord() {
         <span class="side-label">当前流程</span>
         <strong>{{ record.status }}</strong>
         <small>版本 V{{ record.version }} · 更新于 {{ record.updatedAt.replace('T', ' ').slice(0, 16) }}</small>
+        <small>有效批次 {{ record.batchId || store.activeBatch?.id || '基线数据' }}</small>
+      </div>
+      <div v-if="approval" class="approval-panel">
+        <span class="side-label">放行审批</span>
+        <NTag :type="approvalType" :bordered="false">{{ approval.decision }}</NTag>
+        <small>{{ approval.basis }}</small>
+      </div>
+      <div v-if="recordRetests.length" class="retest-panel">
+        <span class="side-label">复测单</span>
+        <p v-for="retest in recordRetests" :key="retest.id">
+          <NTag size="small" :type="retest.status === '待执行' ? 'warning' : retest.status === '已作废' ? 'error' : 'success'" :bordered="false">{{ retest.status }}</NTag>
+          {{ retest.id }} · {{ retest.reason }}
+        </p>
       </div>
       <div class="flow-list">
         <button v-for="status in transitions" :key="status" :class="{ active: status === record.status }" @click="changeStatus(status)">
@@ -114,7 +171,7 @@ function exportRecord() {
       </div>
       <div class="rule-note">
         <strong>闭环校验</strong>
-        <p>异常项存在时禁止关闭；紧急风险必须先停用设备。所有操作均写入审计。</p>
+        <p>异常项存在时禁止关闭；紧急风险必须先停用设备；停用隔离中的设备不得进入复测。所有操作均写入审计。</p>
       </div>
       <NButton block @click="router.push('/audit')">查看完整审计</NButton>
     </aside>

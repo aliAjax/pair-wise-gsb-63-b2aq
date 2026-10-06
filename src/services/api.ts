@@ -33,6 +33,11 @@ export function createOfflineInspection(draft: InspectionDraft): InspectionRecor
     ],
     evidenceCount: 0,
     version: 1,
+    syncState: '已同步',
+    batchId: '',
+    conflicts: [],
+    closedBasis: '',
+    reviewItems: [],
     createdAt: now,
     updatedAt: now
   }

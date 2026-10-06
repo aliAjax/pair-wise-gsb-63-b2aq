@@ -11,7 +11,10 @@ const entries = computed(() => store.audit.filter((item) => !keyword.value || `$
 <template>
   <section class="content audit-layout">
     <div class="audit-head">
-      <div><h2>操作审计与版本追溯</h2><p>记录创建、检验修改、状态流转和冲突处理的完整时间线。</p></div>
+      <div>
+        <h2>操作审计与版本追溯</h2>
+        <p>记录创建、检验修改、回连并单、冲突裁定和复测作废的完整时间线。当前有效批次：{{ store.activeBatch?.id ?? '基线数据' }}，重复回连不追加审计。</p>
+      </div>
       <NInput v-model:value="keyword" clearable placeholder="按编号、操作人、动作搜索" style="max-width: 330px" />
     </div>
     <div class="timeline">
@@ -19,7 +22,13 @@ const entries = computed(() => store.audit.filter((item) => !keyword.value || `$
         <div class="time">{{ entry.createdAt.replace('T', ' ').slice(0, 16) }}</div>
         <i />
         <div class="audit-card">
-          <header><strong>{{ entry.action }}</strong><NTag size="small" :bordered="false">{{ entry.recordId }}</NTag></header>
+          <header>
+            <strong>{{ entry.action }}</strong>
+            <div class="audit-tags">
+              <NTag v-if="entry.batchId" size="small" type="info" :bordered="false">{{ entry.batchId }}</NTag>
+              <NTag size="small" :bordered="false">{{ entry.recordId }}</NTag>
+            </div>
+          </header>
           <p>{{ entry.detail }}</p>
           <small>操作人：{{ entry.operator }}</small>
         </div>
